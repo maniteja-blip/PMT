@@ -1,0 +1,89 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic [active]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - navigation [ref=e6]:
+            - button "previous" [disabled] [ref=e7]:
+              - img "previous" [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: 1/
+              - text: "1"
+            - button "next" [disabled] [ref=e12]:
+              - img "next" [ref=e13]
+          - img
+        - generic [ref=e15]:
+          - link "Next.js 16.1.4 (stale) Turbopack" [ref=e16] [cursor=pointer]:
+            - /url: https://nextjs.org/docs/messages/version-staleness
+            - img [ref=e17]
+            - generic "There is a newer version (16.1.6) available, upgrade recommended!" [ref=e19]: Next.js 16.1.4 (stale)
+            - generic [ref=e20]: Turbopack
+          - img
+      - dialog "Build Error" [ref=e22]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]:
+              - generic [ref=e29]: Build Error
+              - generic [ref=e30]:
+                - button "Copy Error Info" [ref=e31] [cursor=pointer]:
+                  - img [ref=e32]
+                - button "No related documentation found" [disabled] [ref=e34]:
+                  - img [ref=e35]
+                - button "Attach Node.js inspector" [ref=e37] [cursor=pointer]:
+                  - img [ref=e38]
+            - generic [ref=e47]: Parsing CSS source code failed
+          - generic [ref=e49]:
+            - generic [ref=e51]:
+              - img [ref=e53]
+              - generic [ref=e55]: ./src/app/globals.css (2275:21)
+              - button "Open in editor" [ref=e56] [cursor=pointer]:
+                - img [ref=e58]
+            - generic [ref=e61]:
+              - generic [ref=e62]: Parsing CSS source code failed
+              - generic [ref=e63]: 2273 |
+              - generic [ref=e64]: "}"
+              - generic [ref=e65]: 2274 |
+              - text: .\[\\u0026_svg\:not\
+              - generic [ref=e66]: "\"\\]\\)\\<\\/script\\>\\<script\\>self\\.__next_f\\.push\\(\\[1\\,\\\"\\(\\[class\\*\\=\\'size-\\'\\]\\)\\]\\:size-4 {"
+              - text: ">"
+              - generic [ref=e67]: 2275 |
+              - text: "&:"
+              - generic [ref=e68]: is(\u0026 svg
+              - text: :not
+              - generic [ref=e69]: "\"])</script><script>self. next f.push([1,\""
+              - text: ([class*='size-'
+              - generic [ref=e70]: "])) {"
+              - generic [ref=e71]: "|"
+              - text: ^
+              - generic [ref=e72]: 2276 |
+              - generic [ref=e73]: width
+              - text: ":"
+              - generic [ref=e74]: calc(
+              - text: var(--
+              - generic [ref=e75]: spacing)
+              - text: "* 4);"
+              - generic [ref=e76]: 2277 |
+              - generic [ref=e77]: height
+              - text: ":"
+              - generic [ref=e78]: calc(
+              - text: var(--
+              - generic [ref=e79]: spacing)
+              - text: "* 4);"
+              - generic [ref=e80]: 2278 |
+              - generic [ref=e81]: "}"
+              - generic [ref=e82]: "'not' is not recognized as a valid pseudo-class. Did you mean '::not' (pseudo-element) or is this a typo? Import trace: Client Component Browser: ./src/app/globals.css [Client Component Browser] ./src/app/layout.tsx [Server Component]"
+        - generic [ref=e83]: "1"
+        - generic [ref=e84]: "2"
+    - generic [ref=e89] [cursor=pointer]:
+      - button "Open Next.js Dev Tools" [ref=e90]:
+        - img [ref=e91]
+      - button "Open issues overlay" [ref=e95]:
+        - generic [ref=e96]:
+          - generic [ref=e97]: "0"
+          - generic [ref=e98]: "1"
+        - generic [ref=e99]: Issue
+  - alert [ref=e100]
+```

@@ -1,0 +1,247 @@
+// Prisma schema for the PMT app.
+// Single-org by design; add an Organization model later if needed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+  MEMBER
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  DONE
+}
+
+enum HealthStatus {
+  ON_TRACK
+  AT_RISK
+  OFF_TRACK
+}
+
+enum MilestoneStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum EntityType {
+  TASK
+  PROJECT
+  MILESTONE
+  COMMENT
+}
+
+enum ActivityAction {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  COMMENTED
+  ASSIGNED
+  DUE_CHANGED
+}
+
+enum ViewKind {
+  TASKS
+  PROJECTS
+  PEOPLE
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  email     String
+  role      Role     @default(MEMBER)
+  teamId    String?
+  timezone  String   @default("America/New_York")
+  weeklyCapacityHours Float @default(35)
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  acceptedAt DateTime?
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  name               String
+  email              String   @unique
+  passwordHash       String?
+  avatarUrl          String?
+  role               Role     @default(MEMBER)
+  timezone           String   @default("America/New_York")
+  weeklyCapacityHours Float   @default(35)
+
+  teamId String?
+  team   Team?   @relation(fields: [teamId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownedProjects   Project[] @relation("ProjectOwner")
+  assignedTasks   Task[]    @relation("TaskAssignee")
+  reportedTasks   Task[]    @relation("TaskReporter")
+  comments        Comment[]
+  activityEvents  ActivityEvent[] @relation("ActivityActor")
+  savedViews      SavedView[]
+}
+
+model SavedView {
+  id        String   @id @default(cuid())
+  kind      ViewKind
+  name      String
+  query     Json
+
+  ownerId   String
+  owner     User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, kind])
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  health      HealthStatus  @default(ON_TRACK)
+  startDate   DateTime?
+  targetDate  DateTime?
+
+  ownerId String
+  owner   User @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  milestones Milestone[]
+  tasks      Task[]
+}
+
+model Milestone {
+  id       String          @id @default(cuid())
+  name     String
+  dueDate  DateTime?
+  status   MilestoneStatus @default(PLANNED)
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?
+  status       TaskStatus   @default(TODO)
+  priority     TaskPriority @default(MEDIUM)
+  estimateHours Float       @default(2)
+  dueDate      DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assigneeId String?
+  assignee   User? @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  reporterId String?
+  reporter   User? @relation("TaskReporter", fields: [reporterId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dependenciesFrom TaskDependency[] @relation("DepFrom")
+  dependenciesTo   TaskDependency[] @relation("DepTo")
+  comments         Comment[]
+
+  @@index([projectId])
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model TaskDependency {
+  id String @id @default(cuid())
+
+  fromTaskId String
+  fromTask   Task @relation("DepFrom", fields: [fromTaskId], references: [id], onDelete: Cascade)
+
+  toTaskId String
+  toTask   Task @relation("DepTo", fields: [toTaskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromTaskId, toTaskId])
+  @@index([toTaskId])
+}
+
+model Comment {
+  id       String   @id @default(cuid())
+  body     String
+
+  taskId String
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  authorId String
+  author   User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model ActivityEvent {
+  id         String         @id @default(cuid())
+  entityType EntityType
+  entityId   String
+  action     ActivityAction
+  metadata   Json?
+
+  actorId String
+  actor   User @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}
