@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { HealthStatus, TaskStatus } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const now = new Date();
   const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);

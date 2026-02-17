@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/app/page-header";
+
+export const dynamic = "force-dynamic";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { TeamDialog } from "@/components/app/dialogs/team-dialog";
