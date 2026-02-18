@@ -1,9 +1,12 @@
-
-// Prisma configuration file.
-// The datasource URL is defined in prisma/schema.prisma via env("DATABASE_URL").
-// We intentionally omit the datasource block here so that `prisma generate`
-// (which runs at build time) does not require DATABASE_URL to be set.
+import "dotenv/config";
 import { defineConfig } from "prisma/config";
+
+// Use a fallback dummy URL so `prisma generate` succeeds at build time
+// even when DATABASE_URL is not yet available (e.g. on Vercel build workers).
+// The real URL is still required at runtime via the schema.prisma env() call.
+const databaseUrl =
+  process.env.DATABASE_URL ??
+  "postgresql://placeholder:placeholder@localhost:5432/placeholder";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -11,4 +14,7 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   engine: "classic",
+  datasource: {
+    url: databaseUrl,
+  },
 });
