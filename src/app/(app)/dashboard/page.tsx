@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { PageHeader } from "@/components/app/page-header";
 import { Card } from "@/components/ui/card";
@@ -12,28 +13,46 @@ export default async function DashboardPage() {
   const now = new Date();
   const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  const [peopleCount, projectCount, openTaskCount] = await Promise.all([
-    db.user.count(),
-    db.project.count(),
-    db.task.count({ where: { status: { not: TaskStatus.DONE } } }),
-  ]);
+  // 1. Cached Hero Stats (Attributes: 60s cache)
+  const getHeroStats = unstable_cache(
+    async () => {
+      return Promise.all([
+        db.user.count(),
+        db.project.count(),
+        db.task.count({ where: { status: { not: TaskStatus.DONE } } }),
+        db.project.count({ where: { health: HealthStatus.AT_RISK } }),
+      ]);
+    },
+    ["dashboard-hero-stats"],
+    { revalidate: 60, tags: ["dashboard", "stats"] }
+  );
 
-  const atRisk = await db.project.count({ where: { health: HealthStatus.AT_RISK } });
+  const [peopleCount, projectCount, openTaskCount, atRisk] = await getHeroStats();
 
-  const [teams, dueSoon] = await Promise.all([
-    db.team.findMany({
-      include: { users: { select: { id: true, weeklyCapacityHours: true, name: true } } },
-      orderBy: { name: "asc" },
-    }),
-    db.task.findMany({
-      where: {
-        status: { not: TaskStatus.DONE },
-        dueDate: { lte: weekAhead },
-        assigneeId: { not: null },
-      },
-      select: { assigneeId: true, estimateHours: true },
-    }),
-  ]);
+  // 2. Cached Team Capacity Radar (Attributes: 5 min cache - capacity changes slowly)
+  const getTeamRadarStats = unstable_cache(
+    async () => {
+      const [teams, dueSoon] = await Promise.all([
+        db.team.findMany({
+          include: { users: { select: { id: true, weeklyCapacityHours: true, name: true } } },
+          orderBy: { name: "asc" },
+        }),
+        db.task.findMany({
+          where: {
+            status: { not: TaskStatus.DONE },
+            dueDate: { lte: weekAhead },
+            assigneeId: { not: null },
+          },
+          select: { assigneeId: true, estimateHours: true },
+        }),
+      ]);
+      return { teams, dueSoon };
+    },
+    ["dashboard-team-radar"],
+    { revalidate: 300, tags: ["dashboard", "teams"] }
+  );
+
+  const { teams, dueSoon } = await getTeamRadarStats();
 
   const loadByUser = new Map<string, number>();
   for (const t of dueSoon) {
@@ -47,20 +66,29 @@ export default async function DashboardPage() {
     return { id: team.id, name: team.name, capacity, load };
   });
 
-  const [blockedTasks, overdueTasks] = await Promise.all([
-    db.task.findMany({
-      where: { status: TaskStatus.BLOCKED },
-      include: { project: { select: { id: true, name: true } } },
-      orderBy: { updatedAt: "desc" },
-      take: 6,
-    }),
-    db.task.findMany({
-      where: { status: { not: TaskStatus.DONE }, dueDate: { lt: new Date() } },
-      include: { project: { select: { id: true, name: true } } },
-      orderBy: { dueDate: "asc" },
-      take: 6,
-    }),
-  ]);
+  // 3. Cached Task Lists (Attributes: 30s cache - fast enough for dashboard "glance")
+  const getTaskLists = unstable_cache(
+    async () => {
+      return Promise.all([
+        db.task.findMany({
+          where: { status: TaskStatus.BLOCKED },
+          include: { project: { select: { id: true, name: true } } },
+          orderBy: { updatedAt: "desc" },
+          take: 6,
+        }),
+        db.task.findMany({
+          where: { status: { not: TaskStatus.DONE }, dueDate: { lt: new Date() } },
+          include: { project: { select: { id: true, name: true } } },
+          orderBy: { dueDate: "asc" },
+          take: 6,
+        }),
+      ]);
+    },
+    ["dashboard-task-lists"],
+    { revalidate: 30, tags: ["dashboard", "tasks"] }
+  );
+
+  const [blockedTasks, overdueTasks] = await getTaskLists();
 
   return (
     <div className="grid gap-6">
@@ -171,7 +199,7 @@ export default async function DashboardPage() {
                   <div className="font-medium">{t.title}</div>
                   <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
                     <span>{t.project.name}</span>
-                    <span className="font-mono">{t.dueDate ? t.dueDate.toLocaleDateString() : "-"}</span>
+                    <span className="font-mono">{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "-"}</span>
                   </div>
                 </Link>
               ))

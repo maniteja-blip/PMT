@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canCreateProject, canDeleteProject } from "@/lib/perm";
@@ -28,7 +29,13 @@ export default async function ProjectsPage({
   const viewId = Array.isArray(sp.view) ? sp.view[0] : sp.view;
 
   // Start fetching auxiliary data immediately
-  const ownersPromise = db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const getCachedOwners = unstable_cache(
+    async () => db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    ["owners-list"],
+    { revalidate: 3600, tags: ["owners"] }
+  );
+
+  const ownersPromise = getCachedOwners();
 
   const savedViewsPromise = session
     ? db.savedView.findMany({
