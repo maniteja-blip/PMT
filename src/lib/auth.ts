@@ -13,7 +13,6 @@ export async function requireSession() {
 
   if (!exists) {
     // Handles stale sessions (eg. DB reset) and deleted users.
-    await clearSession();
     throw new Error("UNAUTHORIZED");
   }
 
