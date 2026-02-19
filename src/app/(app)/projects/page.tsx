@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canCreateProject, canDeleteProject } from "@/lib/perm";
-import { HealthStatus } from "@prisma/client";
+import { HealthStatus, Prisma } from "@prisma/client";
 import { PageHeader } from "@/components/app/page-header";
 import { HealthPill } from "@/components/app/pills";
 import { CreateProjectDialog } from "@/components/app/dialogs/create-project-dialog";
@@ -30,10 +30,10 @@ export default async function ProjectsPage({
   const owners = await db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
   const savedViews = session
     ? await db.savedView.findMany({
-        where: { ownerId: session.userId, kind: "PROJECTS" },
-        select: { id: true, name: true, query: true },
-        orderBy: { updatedAt: "desc" },
-      })
+      where: { ownerId: session.userId, kind: "PROJECTS" },
+      select: { id: true, name: true, query: true },
+      orderBy: { updatedAt: "desc" },
+    })
     : [];
 
   const view = viewId ? savedViews.find((v) => v.id === viewId) : null;
@@ -42,32 +42,44 @@ export default async function ProjectsPage({
   const effectiveOwnerId = typeof viewQuery.ownerId === "string" ? viewQuery.ownerId : ownerId;
   const effectiveQ = typeof viewQuery.q === "string" ? viewQuery.q : q;
 
-  const projects = await db.project.findMany({
-    where: {
-      ...(effectiveHealth && effectiveHealth in HealthStatus
-        ? { health: effectiveHealth as HealthStatus }
-        : {}),
-      ...(effectiveOwnerId ? { ownerId: effectiveOwnerId } : {}),
-      ...(effectiveQ ? { name: { contains: effectiveQ } } : {}),
-    },
+  type ProjectWithRelations = Prisma.ProjectGetPayload<{
     include: {
-      owner: { select: { id: true, name: true } },
-      _count: { select: { tasks: true } },
-    },
-    orderBy: [{ health: "asc" }, { updatedAt: "desc" }],
-    take: pageSize,
-    skip: (page - 1) * pageSize,
-  });
+      owner: { select: { id: true; name: true } };
+      _count: { select: { tasks: true } };
+    };
+  }>;
 
-  const total = await db.project.count({
-    where: {
-      ...(effectiveHealth && effectiveHealth in HealthStatus
+  let projects: ProjectWithRelations[] = [];
+  let total = 0;
+
+  try {
+    const where = {
+      ...(effectiveHealth && Object.values(HealthStatus).includes(effectiveHealth as HealthStatus)
         ? { health: effectiveHealth as HealthStatus }
         : {}),
       ...(effectiveOwnerId ? { ownerId: effectiveOwnerId } : {}),
       ...(effectiveQ ? { name: { contains: effectiveQ } } : {}),
-    },
-  });
+    };
+
+    [projects, total] = await Promise.all([
+      db.project.findMany({
+        where,
+        include: {
+          owner: { select: { id: true, name: true } },
+          _count: { select: { tasks: true } },
+        },
+        orderBy: [{ health: "asc" }, { updatedAt: "desc" }],
+        take: pageSize,
+        skip: (page - 1) * pageSize,
+      }),
+      db.project.count({ where }),
+    ]);
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    // Return empty state or could throw/return error component
+    projects = [];
+    total = 0;
+  }
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   function withPage(n: number) {
