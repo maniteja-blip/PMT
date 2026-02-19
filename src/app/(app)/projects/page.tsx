@@ -27,20 +27,16 @@ export default async function ProjectsPage({
   const q = Array.isArray(sp.q) ? sp.q[0] : sp.q;
   const viewId = Array.isArray(sp.view) ? sp.view[0] : sp.view;
 
-  const owners = await db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
-  const savedViews = session
-    ? await db.savedView.findMany({
+  // Start fetching auxiliary data immediately
+  const ownersPromise = db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+
+  const savedViewsPromise = session
+    ? db.savedView.findMany({
       where: { ownerId: session.userId, kind: "PROJECTS" },
       select: { id: true, name: true, query: true },
       orderBy: { updatedAt: "desc" },
     })
-    : [];
-
-  const view = viewId ? savedViews.find((v) => v.id === viewId) : null;
-  const viewQuery = (view?.query ?? {}) as Record<string, unknown>;
-  const effectiveHealth = typeof viewQuery.health === "string" ? viewQuery.health : health;
-  const effectiveOwnerId = typeof viewQuery.ownerId === "string" ? viewQuery.ownerId : ownerId;
-  const effectiveQ = typeof viewQuery.q === "string" ? viewQuery.q : q;
+    : Promise.resolve([]);
 
   type ProjectWithRelations = Prisma.ProjectGetPayload<{
     include: {
@@ -51,14 +47,25 @@ export default async function ProjectsPage({
 
   let projects: ProjectWithRelations[] = [];
   let total = 0;
+  let owners: { id: string; name: string }[] = [];
+  let savedViews: { id: string; name: string; query: any }[] = [];
 
   try {
+    // Wait for aux data first to determine filters
+    [owners, savedViews] = await Promise.all([ownersPromise, savedViewsPromise]);
+
+    const view = viewId ? savedViews.find((v) => v.id === viewId) : null;
+    const viewQuery = (view?.query ?? {}) as Record<string, unknown>;
+    const effectiveHealth = typeof viewQuery.health === "string" ? viewQuery.health : health;
+    const effectiveOwnerId = typeof viewQuery.ownerId === "string" ? viewQuery.ownerId : ownerId;
+    const effectiveQ = typeof viewQuery.q === "string" ? viewQuery.q : q;
+
     const where = {
       ...(effectiveHealth && Object.values(HealthStatus).includes(effectiveHealth as HealthStatus)
         ? { health: effectiveHealth as HealthStatus }
         : {}),
       ...(effectiveOwnerId ? { ownerId: effectiveOwnerId } : {}),
-      ...(effectiveQ ? { name: { contains: effectiveQ } } : {}),
+      ...(effectiveQ ? { name: { contains: effectiveQ, mode: "insensitive" as const } } : {}),
     };
 
     [projects, total] = await Promise.all([
@@ -76,10 +83,10 @@ export default async function ProjectsPage({
     ]);
   } catch (error) {
     console.error("Error fetching projects:", error);
-    // Return empty state or could throw/return error component
     projects = [];
     total = 0;
   }
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   function withPage(n: number) {

@@ -156,6 +156,8 @@ model Project {
 
   milestones Milestone[]
   tasks      Task[]
+
+  @@index([health, updatedAt])
 }
 
 model Milestone {
