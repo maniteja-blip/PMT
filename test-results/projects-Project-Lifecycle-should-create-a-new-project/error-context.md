@@ -1,0 +1,111 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e8]:
+          - generic [ref=e9]: PMT
+          - generic [ref=e10]: single org control room
+        - navigation [ref=e12]:
+          - link "Dashboard" [ref=e13] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e15]
+            - generic [ref=e20]: Dashboard
+          - link "People" [ref=e21] [cursor=pointer]:
+            - /url: /people
+            - img [ref=e23]
+            - generic [ref=e28]: People
+          - link "Projects" [ref=e29] [cursor=pointer]:
+            - /url: /projects
+            - img [ref=e31]
+            - generic [ref=e33]: Projects
+          - link "Tasks" [ref=e34] [cursor=pointer]:
+            - /url: /tasks
+            - img [ref=e36]
+            - generic [ref=e39]: Tasks
+          - link "Reports" [ref=e40] [cursor=pointer]:
+            - /url: /reports/weekly
+            - img [ref=e42]
+            - generic [ref=e45]: Reports
+          - link "Admin" [ref=e46] [cursor=pointer]:
+            - /url: /admin
+            - img [ref=e48]
+            - generic [ref=e50]: Admin
+        - generic [ref=e52]:
+          - generic [ref=e53]: Today
+          - generic [ref=e54]: Seeded demo data; wire auth next.
+    - generic [ref=e55]:
+      - generic [ref=e57]:
+        - generic [ref=e58]:
+          - generic [ref=e59]: PMT
+          - generic [ref=e60]: portfolio + people + momentum
+        - generic [ref=e61]:
+          - button "Search Ctrl+K" [ref=e62]:
+            - img
+            - text: Search
+            - generic [ref=e63]: Ctrl+K
+          - link "People" [ref=e64] [cursor=pointer]:
+            - /url: /people
+            - img
+            - text: People
+          - button "Admin" [ref=e65]:
+            - img
+            - text: Admin
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - heading "E2E Project 1771494313239" [level=1] [ref=e70]
+            - generic [ref=e71]: "Owner: Admin"
+          - generic [ref=e72]:
+            - generic [ref=e73]: on track
+            - button "Settings" [ref=e74]
+            - button "New task" [ref=e75]
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - generic [ref=e78]: Execution board
+            - generic [ref=e79]: Fast status changes, visible blocked work, no hiding.
+            - generic [ref=e80]:
+              - generic [ref=e82]:
+                - generic [ref=e83]: Todo
+                - generic [ref=e84]: "0"
+              - generic [ref=e86]:
+                - generic [ref=e87]: In progress
+                - generic [ref=e88]: "0"
+              - generic [ref=e90]:
+                - generic [ref=e91]: Blocked
+                - generic [ref=e92]: "0"
+              - generic [ref=e94]:
+                - generic [ref=e95]: Done
+                - generic [ref=e96]: "0"
+          - generic [ref=e97]:
+            - generic [ref=e98]: Milestones
+            - generic [ref=e99]: Keep these few and sharp.
+            - button "New milestone" [ref=e101]
+            - generic [ref=e103]: No milestones yet.
+        - generic [ref=e104]:
+          - generic [ref=e105]:
+            - generic [ref=e106]:
+              - generic [ref=e107]: Risk radar
+              - generic [ref=e108]: what can break next
+            - generic [ref=e109]:
+              - generic [ref=e110]:
+                - generic [ref=e111]: Overdue
+                - generic [ref=e112]: No overdue tasks.
+              - generic [ref=e113]:
+                - generic [ref=e114]: Blocked by dependencies
+                - generic [ref=e116]: No dependency blocks detected.
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - generic [ref=e119]: Dependency map
+              - generic [ref=e120]: edges (from -> to)
+            - generic [ref=e121]: No dependencies in this project yet.
+        - generic [ref=e123]:
+          - generic [ref=e124]: Critical path score
+          - generic [ref=e125]: priority + deps + due + blast radius
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e131] [cursor=pointer]:
+    - img [ref=e132]
+  - alert [ref=e135]
+```

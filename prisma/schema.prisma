@@ -119,6 +119,9 @@ model User {
   comments        Comment[]
   activityEvents  ActivityEvent[] @relation("ActivityActor")
   savedViews      SavedView[]
+
+  @@index([teamId])
+  @@index([role])
 }
 
 model SavedView {
@@ -195,9 +198,10 @@ model Task {
   dependenciesTo   TaskDependency[] @relation("DepTo")
   comments         Comment[]
 
-  @@index([projectId])
-  @@index([assigneeId])
-  @@index([status])
+  @@index([projectId, status])
+  @@index([assigneeId, status])
+  @@index([status, completedAt])
+  @@index([status, dueDate])
   @@index([dueDate])
 }
 

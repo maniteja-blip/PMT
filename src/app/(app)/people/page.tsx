@@ -36,20 +36,17 @@ export default async function PeoplePage({
   const q = Array.isArray(sp.q) ? sp.q[0] : sp.q;
   const viewId = Array.isArray(sp.view) ? sp.view[0] : sp.view;
 
-  const [users, projects, people, teams, savedViews] = await Promise.all([
-    db.user.findMany({
-      orderBy: { name: "asc" },
-      include: { team: true },
-    }),
+  // 1. Fetch filters and configuration data in parallel
+  const [projects, people, teams, savedViews] = await Promise.all([
     db.project.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.user.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.team.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     session
       ? db.savedView.findMany({
-          where: { ownerId: session.userId, kind: "PEOPLE" },
-          select: { id: true, name: true, query: true },
-          orderBy: { updatedAt: "desc" },
-        })
+        where: { ownerId: session.userId, kind: "PEOPLE" },
+        select: { id: true, name: true, query: true },
+        orderBy: { updatedAt: "desc" },
+      })
       : Promise.resolve([]),
   ]);
 
@@ -63,6 +60,8 @@ export default async function PeoplePage({
       ? String(viewQuery.overloaded)
       : overloaded;
 
+  // 2. Prepare aggregations (always needed for cards, and potentially for filtering)
+  //    This is efficient as it groups by assignee, returning at most N_USERS rows.
   const loadByAssignee = await db.task.groupBy({
     by: ["assigneeId"],
     where: {
@@ -85,24 +84,48 @@ export default async function PeoplePage({
   );
   const openMap = new Map(openByAssignee.map((x) => [x.assigneeId!, x._count._all]));
 
-  const filtered = users.filter((u) => {
-    if (effectiveTeamId && u.teamId !== effectiveTeamId) return false;
-    if (effectiveRole && u.role !== effectiveRole) return false;
-    if (effectiveQ && !u.name.toLowerCase().includes(String(effectiveQ).toLowerCase())) return false;
+  // 3. Handle complicated "Overloaded" filter
+  //    If filtering by overload status, we must pre-calculate the list of allowed user IDs.
+  let allowedUserIds: string[] | undefined;
 
-    if (effectiveOverloaded === "true" || effectiveOverloaded === "false") {
-      const load = loadMap.get(u.id)?.hours ?? 0;
-      const isOver = load > u.weeklyCapacityHours;
-      if (effectiveOverloaded === "true" && !isOver) return false;
-      if (effectiveOverloaded === "false" && isOver) return false;
-    }
+  if (effectiveOverloaded === "true" || effectiveOverloaded === "false") {
+    // We need capacity for all users to verify overload status against the aggregate
+    const allUsersCapacity = await db.user.findMany({
+      select: { id: true, weeklyCapacityHours: true },
+    });
 
-    return true;
-  });
+    allowedUserIds = allUsersCapacity
+      .filter((u) => {
+        const load = loadMap.get(u.id)?.hours ?? 0;
+        const isOver = load > u.weeklyCapacityHours;
+        if (effectiveOverloaded === "true" && isOver) return true;
+        if (effectiveOverloaded === "false" && !isOver) return true;
+        return false;
+      })
+      .map((u) => u.id);
+  }
 
-  const total = filtered.length;
+  // 4. Build the efficient main query
+  const where = {
+    ...(effectiveTeamId ? { teamId: effectiveTeamId } : {}),
+    ...(effectiveRole ? { role: effectiveRole as any } : {}), // Cast if role enum matches
+    ...(effectiveQ ? { name: { contains: effectiveQ, mode: "insensitive" as const } } : {}),
+    // Apply the pre-calculated ID filter if it exists
+    ...(allowedUserIds ? { id: { in: allowedUserIds } } : {}),
+  };
+
+  const [visible, total] = await Promise.all([
+    db.user.findMany({
+      where,
+      orderBy: { name: "asc" },
+      include: { team: true },
+      take: pageSize,
+      skip: (page - 1) * pageSize,
+    }),
+    db.user.count({ where }),
+  ]);
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const visible = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   function withPage(n: number) {
     const next = new URLSearchParams();
